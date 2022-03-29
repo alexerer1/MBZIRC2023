@@ -1,0 +1,5 @@
+/home/local/MBZIRC2023/CameraServer/build/CMakeFiles/rebuild_cache.dir
+/home/local/MBZIRC2023/CameraServer/build/CMakeFiles/boxDetection2.dir
+/home/local/MBZIRC2023/CameraServer/build/CMakeFiles/camera_server.dir
+/home/local/MBZIRC2023/CameraServer/build/CMakeFiles/edit_cache.dir
+/home/local/MBZIRC2023/CameraServer/build/CMakeFiles/boxDetection.dir

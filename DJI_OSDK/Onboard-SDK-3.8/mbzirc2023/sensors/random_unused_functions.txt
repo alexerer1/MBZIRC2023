@@ -1,0 +1,237 @@
+void ControlAutnav::PID_control_step(float x, float y, float z, float th){
+
+//     150 ms 1/30
+/*    float fw_b0 = 0.562341325190349;
+    float fw_b1 = -0.560466854106381;
+
+    float fw_a1 = -1.0000;
+    
+    float bw_b0 = 10.0;
+    float bw_b1 = -9.478133743565550;
+
+    float bw_a1 = -0.478133743565551;  */  
+
+// 150 ms 1/10
+//     float fw_b0 =  0.562341325190349;
+//     float fw_b1 = -0.556717911938446;
+// 
+//     float fw_a1 = -1.0000;
+//     
+//     float bw_b0 = 10.0;
+//     float bw_b1 = -9.109307052447335;
+// 
+//     float bw_a1 = -0.109307052447334;
+
+// 400 ms 1/10
+//     float fw_b0 =  0.125892541179417;
+//     float fw_b1 = -0.124633615767623;
+// 
+//     float fw_a1 = -1.0000;
+//     
+//     float bw_b0 = 10.0;
+//     float bw_b1 = -9.425787463899017;
+// 
+//     float bw_a1 = -0.425787463899016;
+
+
+//400 ms 1/30 v2
+    float fw_b0 =  0.029853826189180;
+    float fw_b1 = -0.029804069812198;
+
+    float fw_a1 = -1.0000;
+    
+    float bw_b0 = 10.0;
+    float bw_b1 = -9.890519587100927;
+
+    float bw_a1 = -0.890519587100928;
+
+        // Reference generator
+    if(fabs(pose_target.x - global_pose_ref.x)<=0.01f){
+        pose_target.x = global_pose_ref.x;
+    }
+    else{
+        if(pose_target.x < global_pose_ref.x){
+            pose_target.x = pose_target.x + global_vel_ref.x*Ts;
+        }
+        else{
+            pose_target.x = pose_target.x - global_vel_ref.x*Ts;
+        }
+    }
+    if(fabs(pose_target.y - global_pose_ref.y)<=0.01f){
+        pose_target.y = global_pose_ref.y;
+    }
+    else{
+        if(pose_target.y < global_pose_ref.y){
+            pose_target.y = pose_target.y + global_vel_ref.y*Ts;
+        }
+        else{
+            pose_target.y = pose_target.y - global_vel_ref.y*Ts;
+        }
+    }
+    if(fabs(pose_target.z - global_pose_ref.z)<=0.001f){
+        pose_target.z = global_pose_ref.z;
+    }
+    else{
+        if(pose_target.z < global_pose_ref.z){
+            pose_target.z = pose_target.z + global_vel_ref.z*Ts;
+        }
+        else{
+            pose_target.z = pose_target.z - global_vel_ref.z*Ts;
+        }
+    }
+    if(fabs(pose_target.th - global_pose_ref.th)<=0.001f){
+        pose_target.th = global_pose_ref.th;
+    }
+    else{
+        if(pose_target.th < global_pose_ref.th){
+            pose_target.th = pose_target.th + global_vel_ref.th*Ts;
+        }
+        else{
+            pose_target.th = pose_target.th - global_vel_ref.th*Ts;
+        }
+    }
+    
+    
+    float bw_x = (x - dummy_bw_x*bw_a1) * bw_b0 + dummy_bw_x * bw_b1;
+    
+    float inp = global_pose_ref.x - bw_x;
+    pitchcmd = ( inp - dummy_fw_x*fw_a1) * fw_b0 + dummy_fw_x * fw_b1;
+    
+    dummy_bw_x = x - dummy_bw_x*bw_a1;
+    dummy_fw_x = inp - dummy_fw_x*fw_a1;
+    
+    float err_x = inp;
+    
+    float bw_y = (y - dummy_bw_y*bw_a1) * bw_b0 + dummy_bw_y * bw_b1;
+    inp = global_pose_ref.y - bw_y;
+    rollcmd = ( inp - dummy_fw_y*fw_a1) * fw_b0 + dummy_fw_y * fw_b1;
+    
+    dummy_bw_y = y - dummy_bw_y*bw_a1;
+    dummy_fw_y = inp - dummy_fw_y*fw_a1;
+    
+    float err_y = inp;
+    
+    
+    
+//         Add control action to attitude controller variables and convert from rad
+    float target_roll, target_pitch, target_yaw_rate;
+    target_pitch    = pitchcmd*180/M_PI;
+    target_roll     = rollcmd*180/M_PI;
+    target_yaw_rate = yawratecmd*180/M_PI;
+
+    // Constrain control signal in centidegrees
+    float pitchmax = 20;
+    float rollmax = 20;
+    float yawratemax = 45;
+    
+    if(target_pitch > pitchmax){
+        target_pitch =  pitchmax;   
+        pitchcmd_after_limit =  pitchmax;
+    }
+    else if(target_pitch < -pitchmax){
+        target_pitch = -pitchmax;  
+        pitchcmd_after_limit = -pitchmax;
+    }
+    else{ 
+        pitchcmd_after_limit = pitchcmd;
+    }
+
+    if(target_roll  >  rollmax){
+        target_roll  =  rollmax;    
+        rollcmd_after_limit  =  rollmax;
+    }
+    else if(target_roll  < -rollmax){
+        target_roll   = -rollmax;    
+        rollcmd_after_limit  = -rollmax;
+    }
+    else{
+        rollcmd_after_limit = rollcmd;
+    }
+
+    if(target_yaw_rate >  yawratemax){target_yaw_rate =  yawratemax;}
+    if(target_yaw_rate < -yawratemax){target_yaw_rate = -yawratemax;}   
+
+//     Vector3f control_signal = rotation_world_to_pixhawk(target_pitch, target_roll, 0, th);
+    
+//     std::cout << "Err =  " << err_y << "   " << err_x << std::endl;
+//     std::cout << "Cmd =  " << control_signal.x << "   " << control_signal.y << std::endl;
+    
+    target_pitch *= (-1);
+    target_roll *= (-1) ;
+    
+    rollcmd = cos(th)*target_roll - sin(th)*target_pitch;
+    pitchcmd = sin(th)*target_roll + cos(th)*target_pitch;
+    
+    target_roll = rollcmd;
+    target_pitch = pitchcmd;
+    
+    yawratecmd = 0.9*(pose_target.th - th)*180/M_PI;
+    yawratecmd *= (-1);
+    if(yawratecmd >  yawratemax){yawratecmd =  yawratemax;}
+    if(yawratecmd < -yawratemax){yawratecmd = -yawratemax;} 
+    
+    if( z != 0)    zvelcmd = height_pid.calculate(global_pose_ref.z, z);
+    else zvelcmd = 0;
+    
+//     vehicle->control->attitudeYawRateAndVertVelCtrl( control_signal.y, control_signal.x, 0, 0);
+    vehicle->control->attitudeYawRateAndVertVelCtrl( target_roll, target_pitch, yawratecmd, zvelcmd);
+    
+}
+
+
+
+
+
+
+        Mat hsv, low_mask, high_mask, mask;
+        cvtColor( *image, hsv, CV_RGB2HSV );
+        
+        inRange( hsv, Scalar(0,25,25), Scalar(20,255,255), low_mask );
+        inRange( hsv, Scalar(150,25,25), Scalar(180,255,255), high_mask );
+        
+        bitwise_or( low_mask, high_mask, mask);
+        
+        GaussianBlur( mask, mask, Size(3,3), 0);
+        
+        Mat kernel = Mat(5,5, CV_8UC1, 1);
+        kernel.at<char>(0,0) = 0;
+        kernel.at<char>(0,4) = 0;
+        kernel.at<char>(4,0) = 0;
+        kernel.at<char>(4,4) = 0;
+        
+        erode( mask, mask, kernel , Point(-1,-1), 3);
+        
+        vector<vector<Point>> contours;
+        vector<Vec4i> hierachy;
+        
+        findContours( mask, contours, hierachy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(0,0));
+        
+        if( contours.size() > 0 ){
+            
+            int min_u = 9999;
+            int min_v = 9999;
+            int max_u = -9999;
+            int max_v = -9999;
+            
+            for( int i = 0; i < contours.size(); i++ ){
+                
+                for( int j = 0; j < contours[i].size(); j++ ){
+                    if( contours[i][j].x < min_u ) min_u = contours[i][j].x;
+                    if( contours[i][j].y < min_v ) min_v = contours[i][j].y;
+                    
+                    if( contours[i][j].x > max_u ) max_u = contours[i][j].x;
+                    if( contours[i][j].y > max_v) max_v = contours[i][j].y;
+                }
+                if( camera->show_image ){
+                    drawContours( *image, contours, i, Scalar(255,0,0), 2, 8, hierachy, 0, Point() );
+                }
+                
+            }
+            
+            float x = (max_u + min_u) * 0.5;
+            float y = (max_v + min_v) * 0.5;
+            
+            if( camera->show_image ){
+                circle(*image,Point(x,y),1,Scalar(0,0,255),5,8,0); 
+                circle(*image,Point(320,240),1,Scalar(0,255,0),5,8,0); 
+            }

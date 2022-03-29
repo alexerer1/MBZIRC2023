@@ -1,0 +1,87 @@
+#ifndef _CAMERA_LOCALIZER_PI_HPP
+#define _CAMERA_LOCALIZER_PI_HPP
+
+#include <raspicam/raspicam_cv.h> 
+#include "aruco_map.h"
+//#include "aruco_pose.h"
+
+#include "type_defines.hpp"
+
+#include "loop-heartbeat.hpp"
+#include <pthread.h>
+
+#include "dji_vehicle.hpp"
+
+#include "BallLocalizer.hpp"
+
+enum CamLocType {
+    ARUCO,
+    RED_BOX,
+    BALL
+};
+
+class CameraLocalizer : public InternalThread{
+public:
+    //CameraLocalizer() {}
+    CameraLocalizer(int w = 320, int h = 240) {res_width = w; res_height = h;}
+    ~CameraLocalizer() {}
+    
+	bool init_camera( Vehicle * v );
+    bool stop_camera();
+    
+    bool is_valid();
+    
+    void set_show_image(bool enable);
+    
+    void reset_valid();
+    
+    void reset_position();
+    
+    void set_loopFreq(int freq);
+    
+    void set_last_pos(float h, float head);
+    
+    float get_last_height();
+    float get_last_heading();
+    
+    pose_t get_camera_position();
+    
+    bool show_image = false;
+    
+    ar_map global_map;
+
+    int LocType = ARUCO;
+    
+private:
+	
+    void cameraMainLoop();
+    void InternalThreadEntry();
+    
+    BallLocalizer ball_track;
+    
+    HeartbeatTimer loopTimer;
+    
+	int res_width = 320;
+	int res_height = 240;
+    int default_freq = 30;
+    
+    int loopFreq = 30;
+    
+    int show_image_freq = 2;
+    
+    bool camera_running = false;
+    
+    pose_t camera_position_estimate;
+    
+    pthread_mutex_t pose_est_mutex = PTHREAD_MUTEX_INITIALIZER;
+    
+    float last_height = 0;
+    float last_heading = 0;
+    
+    DJI::OSDK::Vehicle * vehicle;
+    
+	raspicam::RaspiCam_Cv piCamera;
+
+};
+
+#endif

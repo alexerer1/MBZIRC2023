@@ -1,0 +1,17 @@
+/home/local/MBZIRC2023/DJI_OSDK/Onboard-SDK-3.8/missions/CMakeFiles/rebuild_cache.dir
+/home/local/MBZIRC2023/DJI_OSDK/Onboard-SDK-3.8/missions/CMakeFiles/edit_cache.dir
+/home/local/MBZIRC2023/DJI_OSDK/Onboard-SDK-3.8/missions/sensors/CMakeFiles/rebuild_cache.dir
+/home/local/MBZIRC2023/DJI_OSDK/Onboard-SDK-3.8/missions/sensors/CMakeFiles/sensors.dir
+/home/local/MBZIRC2023/DJI_OSDK/Onboard-SDK-3.8/missions/sensors/CMakeFiles/edit_cache.dir
+/home/local/MBZIRC2023/DJI_OSDK/Onboard-SDK-3.8/missions/test-flight-mission/CMakeFiles/rebuild_cache.dir
+/home/local/MBZIRC2023/DJI_OSDK/Onboard-SDK-3.8/missions/test-flight-mission/CMakeFiles/test-flight-mission.dir
+/home/local/MBZIRC2023/DJI_OSDK/Onboard-SDK-3.8/missions/test-flight-mission/CMakeFiles/edit_cache.dir
+/home/local/MBZIRC2023/DJI_OSDK/Onboard-SDK-3.8/missions/camera_tester/CMakeFiles/rebuild_cache.dir
+/home/local/MBZIRC2023/DJI_OSDK/Onboard-SDK-3.8/missions/camera_tester/CMakeFiles/camera-tester.dir
+/home/local/MBZIRC2023/DJI_OSDK/Onboard-SDK-3.8/missions/camera_tester/CMakeFiles/edit_cache.dir
+/home/local/MBZIRC2023/DJI_OSDK/Onboard-SDK-3.8/missions/gripper_tester/CMakeFiles/rebuild_cache.dir
+/home/local/MBZIRC2023/DJI_OSDK/Onboard-SDK-3.8/missions/gripper_tester/CMakeFiles/gripper-tester.dir
+/home/local/MBZIRC2023/DJI_OSDK/Onboard-SDK-3.8/missions/gripper_tester/CMakeFiles/edit_cache.dir
+/home/local/MBZIRC2023/DJI_OSDK/Onboard-SDK-3.8/missions/ASTA-balloon/CMakeFiles/rebuild_cache.dir
+/home/local/MBZIRC2023/DJI_OSDK/Onboard-SDK-3.8/missions/ASTA-balloon/CMakeFiles/ASTA-balloon.dir
+/home/local/MBZIRC2023/DJI_OSDK/Onboard-SDK-3.8/missions/ASTA-balloon/CMakeFiles/edit_cache.dir

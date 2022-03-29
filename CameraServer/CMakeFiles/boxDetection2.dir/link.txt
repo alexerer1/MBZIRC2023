@@ -1,0 +1,2 @@
+/usr/bin/ar qc libboxDetection2.a  CMakeFiles/boxDetection2.dir/Jacob_box/BoxDetection.cpp.o
+/usr/bin/ranlib libboxDetection2.a

@@ -1,0 +1,264 @@
+
+#include "opencv2/opencv.hpp"
+#include "opencv2/imgcodecs.hpp"
+#include "opencv2/core/core.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/aruco.hpp"
+// Raspicam
+#include <raspicam/raspicam_cv.h> 
+
+#include "CameraLocalizer.hpp"
+#include "loop-heartbeat.hpp"
+#include "InternalThread.hpp"
+
+#include <pthread.h>
+#include <unistd.h>
+#include "time.h"
+
+#include "aruco_map.h"
+#include "aruco_pose.h"
+
+#include "GeneralCommands.hpp"
+
+using namespace std;
+
+using namespace cv;
+
+/* TODO: Function for changing frequency
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ */
+
+// Stops and closes the camera thread
+bool CameraLocalizer::stop_camera(){
+    camera_running = false;
+    WaitForInternalThreadToExit();
+    loopTimer.stop_hb();
+    piCamera.release();
+}
+
+// Initialize and start the camera thread to default parameters
+bool CameraLocalizer::init_camera(Vehicle * v){
+
+    vehicle = v;
+    
+    // Open RaspiCam and set standard resolution
+    std::cout << "Opening camera with resolution : " << res_width << " x " << res_height << std::endl;
+	piCamera.set(CV_CAP_PROP_FRAME_WIDTH, res_width); // 320
+	piCamera.set(CV_CAP_PROP_FRAME_HEIGHT, res_height); // 240
+	if(!piCamera.open()) {
+		return 0;
+	}
+	
+	camera_position_estimate.valid = false;
+	camera_position_estimate.x = 0;
+	camera_position_estimate.y = 0;
+	camera_position_estimate.z = 0;
+    camera_position_estimate.th = 0;
+	camera_position_estimate.num_pose = 0;
+	
+	// Decode the standard map (marker 0 is at 0,0,0)
+	global_map.decode_xml("maps/startmap.xml");
+	
+    // Start the loop / thread timer
+    if( show_image ) loopFreq = show_image_freq;
+    
+	loopTimer.start_hb(loopFreq);
+	
+    ball_track.init(0.075);
+    
+    // Start the camera thread
+    camera_running = true;
+    if( !StartInternalThread() ){
+        return 0;
+    }
+    
+    //std::cout << "Camera thread started succesfully\n";
+	return 1;
+}
+
+void CameraLocalizer::reset_position(){
+    camera_position_estimate.valid = false;
+	camera_position_estimate.x = 0;
+	camera_position_estimate.y = 0;
+	camera_position_estimate.z = 0;
+    camera_position_estimate.th = 0;
+	camera_position_estimate.num_pose = 0;
+}
+
+// Thread main function calling the main loop
+void CameraLocalizer::InternalThreadEntry()
+{
+    cameraMainLoop();
+}
+
+// Enable/disable show image
+void CameraLocalizer::set_show_image(bool enable)
+{
+    show_image = enable;
+    if( show_image ) loopTimer.set_freq( show_image_freq );
+    else loopTimer.set_freq( default_freq );
+}
+
+pose_t CameraLocalizer::get_camera_position(){
+    
+    pthread_mutex_lock(&pose_est_mutex);
+    pose_t pose = camera_position_estimate;
+    pthread_mutex_unlock(&pose_est_mutex);
+    
+    return pose;
+}
+
+void CameraLocalizer::set_loopFreq(int freq){
+    loopFreq = freq;
+    loopTimer.set_freq(loopFreq);
+}
+
+void CameraLocalizer::reset_valid(){
+    
+    pthread_mutex_lock(&pose_est_mutex);
+    camera_position_estimate.valid = false;
+    pthread_mutex_unlock(&pose_est_mutex);
+}
+
+bool CameraLocalizer::is_valid(){
+    pthread_mutex_lock(&pose_est_mutex);
+    bool val = camera_position_estimate.valid;
+    pthread_mutex_unlock(&pose_est_mutex);
+    return val;
+}
+
+void CameraLocalizer::set_last_pos(float h, float head)
+{
+    last_height = h;
+    last_heading = head;
+}
+
+float CameraLocalizer::get_last_height() { return last_height; }
+float CameraLocalizer::get_last_heading() { return last_heading; }
+
+void CameraLocalizer::cameraMainLoop() {
+    
+    cv::Mat frame;
+    struct timespec gettime_now; 
+    
+    long int last_heartbeat = 0;
+    long int new_heartbeat = 0;
+    long int time_diff = 0;
+    long tmp_num_pose;
+    long int start_sec = 0;
+    
+    float last_time;
+    float now_time;
+    float tdiff;
+    
+    float grab_time;
+
+    pose_t cameraPose;
+    
+    DJI::OSDK::Telemetry::Quaternion quaternion;
+    DJI::OSDK::Telemetry::Vector3f RPY_angle;
+    RPY_angle.x = 0;
+    RPY_angle.y = 0;
+    
+    
+    clock_gettime(CLOCK_REALTIME, &gettime_now);
+    last_heartbeat = gettime_now.tv_nsec;
+    start_sec = gettime_now.tv_sec;
+    
+    last_time = (double)(gettime_now.tv_sec - start_sec) + (double)gettime_now.tv_nsec/1000000000.0;
+    
+    while(camera_running) {
+
+        // Wait for heartbeat
+        while( loopTimer.get_hb_flag() == 0 ) usleep(5);
+        
+        // Capture next frame
+        clock_gettime(CLOCK_REALTIME, &gettime_now);
+        grab_time = (float)(gettime_now.tv_sec - start_sec) + (float)gettime_now.tv_nsec/1000000000.0;
+        piCamera.grab();
+        piCamera.retrieve(frame);
+        clock_gettime(CLOCK_REALTIME, &gettime_now);
+        grab_time = ((float)(gettime_now.tv_sec - start_sec) + (float)gettime_now.tv_nsec/1000000000.0) - grab_time;
+        
+        // Find ArUco position
+        quaternion = vehicle->broadcast->getQuaternion();
+        RPY_angle = toEulerAngle( &quaternion );
+        
+        if( LocType != BALL ) cameraPose = find_pos(&frame, this, -RPY_angle.y, -RPY_angle.x );
+        else if( LocType == BALL ) cameraPose = ball_track.update(&frame, -RPY_angle.y, -RPY_angle.x);
+        
+        pthread_mutex_lock(&pose_est_mutex);
+        tmp_num_pose = camera_position_estimate.num_pose;
+        camera_position_estimate = cameraPose;
+        camera_position_estimate.num_pose = tmp_num_pose;
+        if( cameraPose.valid ) camera_position_estimate.num_pose++;
+        pthread_mutex_unlock(&pose_est_mutex);
+        
+        
+//         std::cout << "#########################" << std::endl;
+//         std::cout << "X = " << cameraPose.x << std::endl;
+//         std::cout << "Y = " << cameraPose.y << std::endl;
+//         std::cout << "Z = " << cameraPose.z << std::endl;
+//         std::cout << "Th = " << cameraPose.th << std::endl;
+//         std::cout << "Roll = " << RPY_angle.x*180/M_PI << "\tPitch = " << RPY_angle.y*180/M_PI << std::endl;
+
+        if( show_image ){
+            
+//             cv::aruco::Dictionary dictionary=aruco::getPredefinedDictionary(aruco::DICT_6X6_250);
+//             cv::Mat cameraMatrix=(Mat_<double>(3,3)<<311.76734368,0,162.55732796,0,311.28539847,113.87483741,0,0,1);
+//             cv::Mat distCoeffs=(Mat_<double>(1,5)<<-0.0376471738,  1.21868272, -0.00380002901 , 0.00322747751, -5.65860321);
+//             vector<int> markerIds;
+//             vector<vector<Point2f> > corners, rejectedCandidates;
+//             vector<Vec3d> rvecs, tvecs;
+//             
+//             cv::aruco::detectMarkers( frame, dictionary, corners, markerIds); 
+//             
+//             cv::aruco::drawDetectedMarkers( frame, corners, markerIds);
+//             
+//             cv::aruco::estimatePoseSingleMarkers(corners, 0.09, cameraMatrix, distCoeffs, rvecs, tvecs);
+//             
+//             for(int j = 0; j < markerIds.size(); j++) cv::aruco::drawAxis( frame, cameraMatrix, distCoeffs, rvecs[j], tvecs[j], 0.1);
+//             
+//             cv::circle(frame,Point(160,120),1,Scalar(0,0,255),5,8,0);
+//             cv::imshow("Frame", frame);
+
+            cv::imshow("Frame", frame);
+            
+            if ( cv::waitKey(10) == 'q' ) camera_running = false;
+        }
+        
+        
+        clock_gettime(CLOCK_REALTIME, &gettime_now);
+        new_heartbeat = gettime_now.tv_nsec;
+        
+        now_time = (float)(gettime_now.tv_sec -start_sec) + (float)gettime_now.tv_nsec/1000000000.0;
+        
+        //time_diff = abs(new_heartbeat - last_heartbeat);
+
+//         std::cout << "Camera Freq = " << 1.0/(time_diff / 1000000000.0) << std::endl;
+        
+        
+        time_diff = abs(now_time - last_time);
+        
+        
+//         std::cout << "now = " << now_time << "   last = " << last_time << "   dif = " << tdiff << std::endl;
+        
+        tdiff = abs(now_time - last_time);
+        
+//         std::cout << "Camera Freq = " << 1.0/(tdiff) << "\n";// << 1.0/grab_time << "\t" << camera_position_estimate.x << std::endl;
+        
+        clock_gettime(CLOCK_REALTIME, &gettime_now);
+        last_heartbeat = gettime_now.tv_nsec;
+        last_time = (float)(gettime_now.tv_sec - start_sec) + (float)gettime_now.tv_nsec/1000000000.0;
+        
+    }
+    
+    cv::destroyAllWindows();
+    
+}

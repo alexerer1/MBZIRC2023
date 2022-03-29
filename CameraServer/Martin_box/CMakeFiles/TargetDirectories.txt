@@ -1,0 +1,4 @@
+/home/local/MBZIRC2020/CameraServer/Martin_box/CMakeFiles/rebuild_cache.dir
+/home/local/MBZIRC2020/CameraServer/Martin_box/CMakeFiles/edit_cache.dir
+/home/local/MBZIRC2020/CameraServer/Martin_box/CMakeFiles/boxDetection.dir
+/home/local/MBZIRC2020/CameraServer/Martin_box/CMakeFiles/main.dir

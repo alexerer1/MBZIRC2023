@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+XML to store a map with ArUco markers Markers are represented with 6 parameters
+The 'type' property tells if the marker can move around (variable) or not (fixed) (boolean value in cpp)
+num_markers are used for memory purposes for allocating correct size array for marker information
+id: id number of the ArUco marker (int, no decimal point)
+x,y,z: position of center of marker in gloabl frame (in meters, with decimal point)
+th: yaw (theta) of the marker in the global frame (in radians, with decimal point)
+size: the size of the marker in meters (with deciaml point)
+NO SPACES in any of the elements
+
+
+-->
+<map>
+	<num_markers>1</num_markers>
+	<marker type="fixed">
+		<id>0</id>
+		<x>0.0</x>
+		<y>0.0</y>
+		<z>0.0</z>
+		<th>0.0</th>
+		<size>0.07</size>
+	</marker>
+
+</map>

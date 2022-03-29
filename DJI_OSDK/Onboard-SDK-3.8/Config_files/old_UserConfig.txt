@@ -1,0 +1,4 @@
+app_id : 1068445
+app_key : c8640f0878ec0ecc24150af05bee1d768a7bb58c2fce60a098783a0f121c550a
+device : /dev/ttyAMA0
+baudrate : 921600
